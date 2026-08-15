@@ -340,7 +340,7 @@ export default function SosPage() {
             {saving ? 'Guardando...' : 'Registrar y crear episodio de seguimiento'}
           </button>
           <p className="text-xs text-muted mt-3">
-            Esto crea un episodio de "Urgencia" en el historial de {pet.name}, donde podrás
+            Esto crea un episodio de “Urgencia” en el historial de {pet.name}, donde podrás
             agregar seguimiento después (diagnóstico, tratamiento, resultado).
           </p>
         </form>
