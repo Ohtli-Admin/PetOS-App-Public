@@ -2,26 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+@layer base {
+  h1, h2, h3 {
+    @apply font-display text-ink;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+@layer components {
+  .page-container {
+    @apply max-w-xl mx-auto px-4 py-10;
+  }
+  .card {
+    @apply bg-surface border border-border rounded-xl shadow-sm p-6;
+  }
+  .eyebrow {
+    @apply font-mono uppercase tracking-widest text-xs text-muted;
+  }
+  .field-label {
+    @apply block text-sm font-medium text-ink mb-1;
+  }
+  .field-input {
+    @apply w-full rounded-lg border border-border bg-white px-3 py-2 text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand mb-4;
+  }
+  .field-textarea {
+    @apply field-input min-h-[80px];
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-brand text-white px-4 py-2 font-medium hover:bg-brand-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-border bg-white text-ink px-4 py-2 font-medium hover:bg-bg transition-colors;
+  }
+  .btn-text {
+    @apply text-brand font-medium hover:underline;
+  }
 }
