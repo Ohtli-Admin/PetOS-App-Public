@@ -26,7 +26,7 @@ export async function GET(
 
   const { data: pet } = await supabaseAdmin
     .from('pets')
-    .select('name, species, breed, sex, weight_kg, allergies, notes, emergency_vet_phone')
+    .select('name, species, breed, sex, weight_kg, allergies, notes, regular_vet_name, emergency_vet_phone')
     .eq('id', link.pet_id)
     .single()
 

@@ -12,6 +12,7 @@ type SharedPet = {
   weight_kg: number | null
   allergies: string | null
   notes: string | null
+  regular_vet_name: string | null
   emergency_vet_phone: string | null
 }
 
@@ -63,7 +64,7 @@ export default function SharePage() {
         )}
         {pet.emergency_vet_phone && (
           <a href={`tel:${pet.emergency_vet_phone}`} className="btn-secondary text-sm mt-3 inline-block">
-            Llamar al veterinario habitual
+            Llamar a {pet.regular_vet_name || 'su veterinario de confianza'}
           </a>
         )}
       </div>

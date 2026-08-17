@@ -17,6 +17,7 @@ type Pet = {
   weight_kg: number | null
   allergies: string | null
   notes: string | null
+  regular_vet_name: string | null
   emergency_vet_phone: string | null
 }
 
@@ -42,6 +43,8 @@ const EXPIRATION_OPTIONS = [
   { label: 'Sin expiración', hours: null },
 ]
 
+const OTHER_VACCINE_VALUE = '__otra__'
+
 export default function PetDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -54,7 +57,7 @@ export default function PetDetailPage() {
   const [catalog, setCatalog] = useState<VaccineCatalogItem[]>([])
   const [vaccines, setVaccines] = useState<PetVaccine[]>([])
 
-  const [selectedCatalogId, setSelectedCatalogId] = useState('')
+  const [selectedOption, setSelectedOption] = useState('')
   const [customName, setCustomName] = useState('')
   const [dateAdministered, setDateAdministered] = useState('')
   const [nextDueDate, setNextDueDate] = useState('')
@@ -121,6 +124,7 @@ export default function PetDetailPage() {
         weight_kg: pet.weight_kg,
         allergies: pet.allergies,
         notes: pet.notes,
+        regular_vet_name: pet.regular_vet_name,
         emergency_vet_phone: pet.emergency_vet_phone,
       })
       .eq('id', pet.id)
@@ -129,15 +133,20 @@ export default function PetDetailPage() {
     setSaving(false)
   }
 
+  const matchingCatalog = catalog.filter(
+    (c) => pet && c.species.trim().toLowerCase() === pet.species.trim().toLowerCase()
+  )
+
   const suggestNextDate = (baseDate: string, months: number) => {
     const d = new Date(baseDate)
     d.setMonth(d.getMonth() + months)
     setNextDueDate(d.toISOString().split('T')[0])
   }
 
-  const handleCatalogChange = (catalogId: string) => {
-    setSelectedCatalogId(catalogId)
-    const item = catalog.find((c) => c.id === catalogId)
+  const handleOptionChange = (value: string) => {
+    setSelectedOption(value)
+    if (value === OTHER_VACCINE_VALUE) return
+    const item = matchingCatalog.find((c) => c.id === value)
     if (item?.default_interval_months && dateAdministered) {
       suggestNextDate(dateAdministered, item.default_interval_months)
     }
@@ -145,7 +154,7 @@ export default function PetDetailPage() {
 
   const handleDateChange = (value: string) => {
     setDateAdministered(value)
-    const item = catalog.find((c) => c.id === selectedCatalogId)
+    const item = matchingCatalog.find((c) => c.id === selectedOption)
     if (item?.default_interval_months && value) {
       suggestNextDate(value, item.default_interval_months)
     }
@@ -155,7 +164,7 @@ export default function PetDetailPage() {
     e.preventDefault()
     setVaccineError('')
 
-    const catalogItem = catalog.find((c) => c.id === selectedCatalogId)
+    const catalogItem = matchingCatalog.find((c) => c.id === selectedOption)
     const vaccineName = catalogItem ? catalogItem.name : customName
 
     if (!vaccineName || !dateAdministered) {
@@ -169,7 +178,7 @@ export default function PetDetailPage() {
       .from('pet_vaccines')
       .insert({
         pet_id: id,
-        vaccine_catalog_id: selectedCatalogId || null,
+        vaccine_catalog_id: catalogItem ? catalogItem.id : null,
         vaccine_name: vaccineName,
         date_administered: dateAdministered,
         next_due_date: nextDueDate || null,
@@ -208,7 +217,7 @@ export default function PetDetailPage() {
       }
     }
 
-    setSelectedCatalogId('')
+    setSelectedOption('')
     setCustomName('')
     setDateAdministered('')
     setNextDueDate('')
@@ -319,8 +328,19 @@ export default function PetDetailPage() {
           <textarea className="field-textarea" value={pet.allergies ?? ''} onChange={(e) => setPet({ ...pet, allergies: e.target.value })} />
           <label className="field-label">Notas</label>
           <textarea className="field-textarea" value={pet.notes ?? ''} onChange={(e) => setPet({ ...pet, notes: e.target.value })} />
-          <label className="field-label">Teléfono de veterinario de emergencia</label>
-          <input className="field-input" value={pet.emergency_vet_phone ?? ''} onChange={(e) => setPet({ ...pet, emergency_vet_phone: e.target.value })} />
+
+          <p className="eyebrow mt-2 mb-3">Veterinario de confianza (opcional)</p>
+          <div className="grid grid-cols-2 gap-x-4">
+            <div>
+              <label className="field-label">Nombre</label>
+              <input className="field-input" value={pet.regular_vet_name ?? ''} onChange={(e) => setPet({ ...pet, regular_vet_name: e.target.value })} />
+            </div>
+            <div>
+              <label className="field-label">Teléfono</label>
+              <input className="field-input" value={pet.emergency_vet_phone ?? ''} onChange={(e) => setPet({ ...pet, emergency_vet_phone: e.target.value })} />
+            </div>
+          </div>
+
           {error && <p className="text-danger text-sm mb-4">{error}</p>}
           <button type="submit" className="btn-primary" disabled={saving}>
             {saving ? 'Guardando...' : 'Guardar cambios'}
@@ -383,20 +403,30 @@ export default function PetDetailPage() {
       )}
 
       <div className="card">
-        <p className="eyebrow mb-4">Registrar vacuna</p>
+        <p className="eyebrow mb-1">Registrar vacuna</p>
+        <p className="text-sm text-muted mb-4">
+          Elige una vacuna de la lista si aparece; si no la encuentras, selecciona "Otra" y escribe el nombre tú mismo.
+        </p>
         <form onSubmit={handleAddVaccine}>
-          <label className="field-label">Vacuna (catálogo)</label>
-          <select className="field-input" value={selectedCatalogId} onChange={(e) => handleCatalogChange(e.target.value)}>
-            <option value="">-- Personalizada --</option>
-            {catalog.filter((c) => c.species === pet.species || !pet.species).map((c) => (
+          <label className="field-label">Vacuna</label>
+          <select className="field-input" value={selectedOption} onChange={(e) => handleOptionChange(e.target.value)}>
+            <option value="">Selecciona una vacuna...</option>
+            {matchingCatalog.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
+            <option value={OTHER_VACCINE_VALUE}>Otra (escribir el nombre)</option>
           </select>
 
-          {!selectedCatalogId && (
+          {matchingCatalog.length === 0 && (
+            <p className="text-xs text-muted -mt-2 mb-4">
+              Todavía no tenemos vacunas precargadas para "{pet.species}" — usa "Otra" para escribirla tú mismo.
+            </p>
+          )}
+
+          {selectedOption === OTHER_VACCINE_VALUE && (
             <>
               <label className="field-label">Nombre de la vacuna</label>
-              <input className="field-input" value={customName} onChange={(e) => setCustomName(e.target.value)} />
+              <input className="field-input" value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Ej. Rabia" />
             </>
           )}
 
