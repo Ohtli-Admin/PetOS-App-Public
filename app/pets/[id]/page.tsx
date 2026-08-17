@@ -36,6 +36,17 @@ type PetVaccine = {
   notes: string | null
 }
 
+type Medication = {
+  id: string
+  name: string
+  dose: string | null
+  frequency: string
+  start_date: string
+  end_date: string | null
+  wants_reminder: boolean
+  notes: string | null
+}
+
 const EXPIRATION_OPTIONS = [
   { label: '24 horas', hours: 24 },
   { label: '3 días', hours: 72 },
@@ -65,6 +76,17 @@ export default function PetDetailPage() {
   const [vaccineFile, setVaccineFile] = useState<File | null>(null)
   const [vaccineSaving, setVaccineSaving] = useState(false)
   const [vaccineError, setVaccineError] = useState('')
+
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [medName, setMedName] = useState('')
+  const [medDose, setMedDose] = useState('')
+  const [medFrequency, setMedFrequency] = useState('')
+  const [medStartDate, setMedStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [medEndDate, setMedEndDate] = useState('')
+  const [medWantsReminder, setMedWantsReminder] = useState(false)
+  const [medNotes, setMedNotes] = useState('')
+  const [medSaving, setMedSaving] = useState(false)
+  const [medError, setMedError] = useState('')
 
   const [shareExpiration, setShareExpiration] = useState(EXPIRATION_OPTIONS[1].label)
   const [shareUrl, setShareUrl] = useState('')
@@ -103,6 +125,13 @@ export default function PetDetailPage() {
       .eq('pet_id', id)
       .order('next_due_date', { ascending: true })
     setVaccines(vaccineData ?? [])
+
+    const { data: medicationData } = await supabase
+      .from('pet_medications')
+      .select('id, name, dose, frequency, start_date, end_date, wants_reminder, notes')
+      .eq('pet_id', id)
+      .order('start_date', { ascending: false })
+    setMedications(medicationData ?? [])
 
     setLoading(false)
   }
@@ -227,6 +256,45 @@ export default function PetDetailPage() {
     loadAll()
   }
 
+  const handleAddMedication = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMedError('')
+
+    if (!medName || !medFrequency || !medStartDate) {
+      setMedError('Falta el nombre, la frecuencia o la fecha de inicio')
+      return
+    }
+
+    setMedSaving(true)
+
+    const { error } = await supabase.from('pet_medications').insert({
+      pet_id: id,
+      name: medName,
+      dose: medDose || null,
+      frequency: medFrequency,
+      start_date: medStartDate,
+      end_date: medEndDate || null,
+      wants_reminder: medWantsReminder,
+      notes: medNotes || null,
+    })
+
+    if (error) {
+      setMedError(error.message)
+      setMedSaving(false)
+      return
+    }
+
+    setMedName('')
+    setMedDose('')
+    setMedFrequency('')
+    setMedStartDate(new Date().toISOString().split('T')[0])
+    setMedEndDate('')
+    setMedWantsReminder(false)
+    setMedNotes('')
+    setMedSaving(false)
+    loadAll()
+  }
+
   const handleCreateShareLink = async () => {
     setShareLoading(true)
     setShareUrl('')
@@ -264,6 +332,14 @@ export default function PetDetailPage() {
     if (diffDays < 0) return { label: 'Vencida', color: '#C1503E' }
     if (diffDays <= 30) return { label: 'Próxima', color: '#E4A335' }
     return { label: 'Vigente', color: '#3F8557' }
+  }
+
+  const getMedicationStatus = (endDate: string | null) => {
+    if (!endDate) return { label: 'Activo', color: '#3F8557' }
+    const today = new Date().toISOString().split('T')[0]
+    return endDate >= today
+      ? { label: 'Activo', color: '#3F8557' }
+      : { label: 'Finalizado', color: '#6B7267' }
   }
 
   if (loading) return <p className="page-container text-muted">Cargando...</p>
@@ -375,6 +451,77 @@ export default function PetDetailPage() {
             </button>
           </div>
         )}
+      </div>
+
+      <p className="eyebrow mb-3">Medicamentos</p>
+
+      {medications.length === 0 ? (
+        <p className="text-muted mb-6">Sin medicamentos registrados todavía.</p>
+      ) : (
+        <div className="grid gap-3 mb-6">
+          {medications.map((m) => {
+            const status = getMedicationStatus(m.end_date)
+            return (
+              <div key={m.id} className="card py-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-medium">{m.name}{m.dose ? ` · ${m.dose}` : ''}</p>
+                  <StatusPill label={status.label} color={status.color} />
+                </div>
+                <p className="text-sm text-muted">{m.frequency}</p>
+                <p className="text-sm text-muted font-mono">
+                  Desde: {formatDate(m.start_date)}
+                  {m.end_date && <> · Hasta: {formatDate(m.end_date)}</>}
+                </p>
+                {m.wants_reminder && (
+                  <p className="text-xs text-warning mt-1">🔔 Recordatorio solicitado (próximamente)</p>
+                )}
+                {m.notes && <p className="text-sm mt-1">{m.notes}</p>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <div className="card mb-8">
+        <p className="eyebrow mb-4">Registrar medicamento</p>
+        <form onSubmit={handleAddMedication}>
+          <div className="grid grid-cols-2 gap-x-4">
+            <div>
+              <label className="field-label">Nombre del medicamento</label>
+              <input className="field-input" value={medName} onChange={(e) => setMedName(e.target.value)} placeholder="Ej. Apoquel" />
+            </div>
+            <div>
+              <label className="field-label">Dosis</label>
+              <input className="field-input" value={medDose} onChange={(e) => setMedDose(e.target.value)} placeholder="Ej. 16 mg" />
+            </div>
+          </div>
+
+          <label className="field-label">Frecuencia</label>
+          <input className="field-input" value={medFrequency} onChange={(e) => setMedFrequency(e.target.value)} placeholder="Ej. Cada 12 horas, 1 vez al día..." />
+
+          <div className="grid grid-cols-2 gap-x-4">
+            <DateField label="Fecha de inicio" value={medStartDate} onChange={setMedStartDate} required />
+            <DateField label="Fecha de fin (opcional)" value={medEndDate} onChange={setMedEndDate} />
+          </div>
+
+          <label className="flex items-center gap-2 mb-4 text-sm mt-4">
+            <input type="checkbox" checked={medWantsReminder} onChange={(e) => setMedWantsReminder(e.target.checked)} />
+            Quiero recordatorio para este medicamento
+          </label>
+          {medWantsReminder && (
+            <p className="text-xs text-muted -mt-3 mb-4">
+              Guardamos tu solicitud — los recordatorios automáticos llegarán en una próxima actualización de PetOS.
+            </p>
+          )}
+
+          <label className="field-label">Notas</label>
+          <input className="field-input" value={medNotes} onChange={(e) => setMedNotes(e.target.value)} />
+
+          {medError && <p className="text-danger text-sm mb-4">{medError}</p>}
+          <button type="submit" className="btn-primary" disabled={medSaving}>
+            {medSaving ? 'Guardando...' : 'Registrar medicamento'}
+          </button>
+        </form>
       </div>
 
       <p className="eyebrow mb-3">Cartilla de vacunación</p>
