@@ -552,7 +552,7 @@ export default function PetDetailPage() {
       <div className="card">
         <p className="eyebrow mb-1">Registrar vacuna</p>
         <p className="text-sm text-muted mb-4">
-          Elige una vacuna de la lista si aparece; si no la encuentras, selecciona "Otra" y escribe el nombre tú mismo.
+          Elige una vacuna de la lista si aparece; si no la encuentras, selecciona “Otra” y escribe el nombre tú mismo.
         </p>
         <form onSubmit={handleAddVaccine}>
           <label className="field-label">Vacuna</label>
@@ -566,7 +566,7 @@ export default function PetDetailPage() {
 
           {matchingCatalog.length === 0 && (
             <p className="text-xs text-muted -mt-2 mb-4">
-              Todavía no tenemos vacunas precargadas para "{pet.species}" — usa "Otra" para escribirla tú mismo.
+              Todavía no tenemos vacunas precargadas para “{pet.species}” — usa “Otra” para escribirla tú mismo.
             </p>
           )}
 
