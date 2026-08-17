@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../../../lib/supabaseClient'
 import { StatusPill } from '../../../../components/ui/StatusPill'
+import { DateField } from '../../../../components/ui/DateField'
+import { formatDate } from '../../../../lib/formatDate'
 
 type EpisodeType =
   | 'sintoma' | 'consulta' | 'vacuna' | 'tratamiento'
@@ -139,7 +141,7 @@ export default function EpisodesPage() {
           {episodes.map((ep) => (
             <Link key={ep.id} href={`/pets/${id}/episodes/${ep.id}`} className="card hover:border-brand transition-colors block">
               <div className="flex items-center justify-between mb-1">
-                <span className="eyebrow">{TYPE_LABELS[ep.type]} · {ep.event_date}</span>
+                <span className="eyebrow">{TYPE_LABELS[ep.type]} · {formatDate(ep.event_date)}</span>
                 <StatusPill label={statusLabel(ep.status)} color={statusColor(ep.status)} />
               </div>
               <p className="font-medium text-lg">{ep.title}</p>
@@ -181,23 +183,19 @@ export default function EpisodesPage() {
             </div>
           </div>
 
-          <label className="field-label">Fecha del evento</label>
-          <input type="date" className="field-input" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+          <DateField label="Fecha del evento" value={eventDate} onChange={setEventDate} required />
 
-          <label className="flex items-center gap-2 mb-4 text-sm">
+          <label className="flex items-center gap-2 mb-4 text-sm mt-4">
             <input type="checkbox" checked={followUpNeeded} onChange={(e) => setFollowUpNeeded(e.target.checked)} />
             Requiere seguimiento
           </label>
 
           {followUpNeeded && (
-            <>
-              <label className="field-label">Fecha de seguimiento</label>
-              <input type="date" className="field-input" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
-            </>
+            <DateField label="Fecha de seguimiento" value={followUpDate} onChange={setFollowUpDate} />
           )}
 
-          {formError && <p className="text-danger text-sm mb-4">{formError}</p>}
-          <button type="submit" className="btn-primary" disabled={saving}>
+          {formError && <p className="text-danger text-sm mb-4 mt-4">{formError}</p>}
+          <button type="submit" className="btn-primary mt-2" disabled={saving}>
             {saving ? 'Guardando...' : 'Registrar episodio'}
           </button>
         </form>

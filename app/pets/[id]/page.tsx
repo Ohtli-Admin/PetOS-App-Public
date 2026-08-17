@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 import { StatusPill } from '../../../components/ui/StatusPill'
+import { DateField } from '../../../components/ui/DateField'
+import { formatDate } from '../../../lib/formatDate'
 
 type Pet = {
   id: string
@@ -15,6 +17,7 @@ type Pet = {
   weight_kg: number | null
   allergies: string | null
   notes: string | null
+  emergency_vet_phone: string | null
 }
 
 type VaccineCatalogItem = {
@@ -31,6 +34,13 @@ type PetVaccine = {
   next_due_date: string | null
   notes: string | null
 }
+
+const EXPIRATION_OPTIONS = [
+  { label: '24 horas', hours: 24 },
+  { label: '3 días', hours: 72 },
+  { label: '7 días', hours: 168 },
+  { label: 'Sin expiración', hours: null },
+]
 
 export default function PetDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -52,6 +62,11 @@ export default function PetDetailPage() {
   const [vaccineFile, setVaccineFile] = useState<File | null>(null)
   const [vaccineSaving, setVaccineSaving] = useState(false)
   const [vaccineError, setVaccineError] = useState('')
+
+  const [shareExpiration, setShareExpiration] = useState(EXPIRATION_OPTIONS[1].label)
+  const [shareUrl, setShareUrl] = useState('')
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -106,6 +121,7 @@ export default function PetDetailPage() {
         weight_kg: pet.weight_kg,
         allergies: pet.allergies,
         notes: pet.notes,
+        emergency_vet_phone: pet.emergency_vet_phone,
       })
       .eq('id', pet.id)
 
@@ -202,6 +218,35 @@ export default function PetDetailPage() {
     loadAll()
   }
 
+  const handleCreateShareLink = async () => {
+    setShareLoading(true)
+    setShareUrl('')
+    setShareCopied(false)
+
+    const option = EXPIRATION_OPTIONS.find((o) => o.label === shareExpiration)
+    const expiresAt = option?.hours
+      ? new Date(Date.now() + option.hours * 60 * 60 * 1000).toISOString()
+      : null
+
+    const token = crypto.randomUUID().replace(/-/g, '')
+
+    const { error } = await supabase.from('pet_share_links').insert({
+      pet_id: id,
+      token,
+      expires_at: expiresAt,
+    })
+
+    if (!error) {
+      setShareUrl(`${window.location.origin}/share/${token}`)
+    }
+    setShareLoading(false)
+  }
+
+  const handleCopyShareUrl = () => {
+    navigator.clipboard.writeText(shareUrl)
+    setShareCopied(true)
+  }
+
   const getVaccineStatus = (nextDue: string | null) => {
     if (!nextDue) return { label: 'Sin programar', color: '#6B7267' }
     const today = new Date()
@@ -251,10 +296,11 @@ export default function PetDetailPage() {
               <label className="field-label">Raza</label>
               <input className="field-input" value={pet.breed ?? ''} onChange={(e) => setPet({ ...pet, breed: e.target.value })} />
             </div>
-            <div>
-              <label className="field-label">Fecha de nacimiento</label>
-              <input type="date" className="field-input" value={pet.birth_date ?? ''} onChange={(e) => setPet({ ...pet, birth_date: e.target.value })} />
-            </div>
+            <DateField
+              label="Fecha de nacimiento"
+              value={pet.birth_date ?? ''}
+              onChange={(v) => setPet({ ...pet, birth_date: v })}
+            />
             <div>
               <label className="field-label">Sexo</label>
               <select className="field-input" value={pet.sex ?? ''} onChange={(e) => setPet({ ...pet, sex: e.target.value })}>
@@ -273,11 +319,42 @@ export default function PetDetailPage() {
           <textarea className="field-textarea" value={pet.allergies ?? ''} onChange={(e) => setPet({ ...pet, allergies: e.target.value })} />
           <label className="field-label">Notas</label>
           <textarea className="field-textarea" value={pet.notes ?? ''} onChange={(e) => setPet({ ...pet, notes: e.target.value })} />
+          <label className="field-label">Teléfono de veterinario de emergencia</label>
+          <input className="field-input" value={pet.emergency_vet_phone ?? ''} onChange={(e) => setPet({ ...pet, emergency_vet_phone: e.target.value })} />
           {error && <p className="text-danger text-sm mb-4">{error}</p>}
           <button type="submit" className="btn-primary" disabled={saving}>
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </form>
+      </div>
+
+      <p className="eyebrow mb-3">Compartir con un cuidador</p>
+      <div className="card mb-8">
+        <p className="text-sm text-muted mb-4">
+          Genera un enlace de solo lectura con la ficha de {pet.name} — sin dar acceso a tu cuenta ni contraseña.
+        </p>
+        <div className="flex gap-2 mb-3">
+          <select
+            className="field-input mb-0"
+            value={shareExpiration}
+            onChange={(e) => setShareExpiration(e.target.value)}
+          >
+            {EXPIRATION_OPTIONS.map((o) => (
+              <option key={o.label} value={o.label}>{o.label}</option>
+            ))}
+          </select>
+          <button onClick={handleCreateShareLink} className="btn-primary whitespace-nowrap" disabled={shareLoading}>
+            {shareLoading ? 'Generando...' : 'Generar enlace'}
+          </button>
+        </div>
+        {shareUrl && (
+          <div className="flex gap-2 items-center">
+            <input className="field-input mb-0 font-mono text-sm" value={shareUrl} readOnly />
+            <button onClick={handleCopyShareUrl} className="btn-secondary whitespace-nowrap">
+              {shareCopied ? 'Copiado' : 'Copiar'}
+            </button>
+          </div>
+        )}
       </div>
 
       <p className="eyebrow mb-3">Cartilla de vacunación</p>
@@ -295,8 +372,8 @@ export default function PetDetailPage() {
                   <StatusPill label={status.label} color={status.color} />
                 </div>
                 <p className="text-sm text-muted font-mono">
-                  Aplicada: {v.date_administered}
-                  {v.next_due_date && <> · Próxima: {v.next_due_date}</>}
+                  Aplicada: {formatDate(v.date_administered)}
+                  {v.next_due_date && <> · Próxima: {formatDate(v.next_due_date)}</>}
                 </p>
                 {v.notes && <p className="text-sm mt-1">{v.notes}</p>}
               </div>
@@ -324,14 +401,8 @@ export default function PetDetailPage() {
           )}
 
           <div className="grid grid-cols-2 gap-x-4">
-            <div>
-              <label className="field-label">Fecha aplicada</label>
-              <input type="date" className="field-input" value={dateAdministered} onChange={(e) => handleDateChange(e.target.value)} />
-            </div>
-            <div>
-              <label className="field-label">Próxima dosis (sugerida)</label>
-              <input type="date" className="field-input" value={nextDueDate} onChange={(e) => setNextDueDate(e.target.value)} />
-            </div>
+            <DateField label="Fecha aplicada" value={dateAdministered} onChange={handleDateChange} />
+            <DateField label="Próxima dosis (sugerida)" value={nextDueDate} onChange={setNextDueDate} />
           </div>
 
           <label className="field-label">Notas</label>

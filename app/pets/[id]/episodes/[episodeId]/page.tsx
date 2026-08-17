@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../../../lib/supabaseClient'
 import { StatusPill } from '../../../../../components/ui/StatusPill'
+import { DateField } from '../../../../../components/ui/DateField'
+import { formatDate } from '../../../../../lib/formatDate'
 
 type Episode = {
   id: string
@@ -154,7 +156,7 @@ export default function EpisodeDetailPage() {
 
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="eyebrow">{TYPE_LABELS[episode.type] ?? episode.type} · {episode.event_date}</span>
+          <span className="eyebrow">{TYPE_LABELS[episode.type] ?? episode.type} · {formatDate(episode.event_date)}</span>
           <StatusPill label={statusLabel(episode.status)} color={statusColor(episode.status)} />
         </div>
         <h2 className="text-2xl mb-2">{episode.title}</h2>
@@ -165,7 +167,7 @@ export default function EpisodeDetailPage() {
           </p>
         )}
         {episode.follow_up_needed && episode.follow_up_date && (
-          <p className="text-warning text-sm font-medium">Próximo seguimiento: {episode.follow_up_date}</p>
+          <p className="text-warning text-sm font-medium">Próximo seguimiento: {formatDate(episode.follow_up_date)}</p>
         )}
       </div>
 
@@ -177,7 +179,7 @@ export default function EpisodeDetailPage() {
           {updates.map((u) => (
             <div key={u.id} className="pl-4 py-3 relative">
               <span className="absolute -left-[5px] top-4 h-2 w-2 rounded-full bg-brand" />
-              <p className="font-mono text-xs text-muted">{u.update_date}</p>
+              <p className="font-mono text-xs text-muted">{formatDate(u.update_date)}</p>
               <p className="mt-1">{u.note}</p>
             </div>
           ))}
@@ -188,8 +190,7 @@ export default function EpisodeDetailPage() {
         <div className="card">
           <p className="eyebrow mb-4">Agregar seguimiento</p>
           <form onSubmit={handleAddUpdate}>
-            <label className="field-label">Fecha</label>
-            <input type="date" className="field-input" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} />
+            <DateField label="Fecha" value={updateDate} onChange={setUpdateDate} />
 
             <label className="field-label">¿Qué pasó?</label>
             <textarea className="field-textarea" value={note} onChange={(e) => setNote(e.target.value)} />
@@ -200,15 +201,12 @@ export default function EpisodeDetailPage() {
             </label>
 
             {stillNeedsFollowUp && (
-              <>
-                <label className="field-label">Próxima fecha de seguimiento</label>
-                <input type="date" className="field-input" value={newFollowUpDate} onChange={(e) => setNewFollowUpDate(e.target.value)} />
-              </>
+              <DateField label="Próxima fecha de seguimiento" value={newFollowUpDate} onChange={setNewFollowUpDate} />
             )}
 
-            {formError && <p className="text-danger text-sm mb-4">{formError}</p>}
+            {formError && <p className="text-danger text-sm mb-4 mt-4">{formError}</p>}
 
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 mt-2">
               <button type="submit" className="btn-primary" disabled={saving}>
                 {saving ? 'Guardando...' : 'Guardar seguimiento'}
               </button>
