@@ -85,7 +85,10 @@ export default function PetsPage() {
           <p className="eyebrow mb-1">Sesión activa</p>
           <p className="text-ink">{userEmail}</p>
         </div>
-        <button onClick={handleLogout} className="btn-text text-sm">Cerrar sesión</button>
+        <div className="flex gap-4 items-center">
+          <Link href="/profile" className="btn-text text-sm">Mi perfil</Link>
+          <button onClick={handleLogout} className="btn-text text-sm">Cerrar sesión</button>
+        </div>
       </div>
 
       <h1 className="text-3xl mb-6">Mis mascotas</h1>

@@ -78,7 +78,7 @@ export default function SosPage() {
       })
   }, [id])
 
-  const handleAskNavigator = async () => {
+  const handleAskAssistant = async () => {
     if (!description || !pet) return
     setAiLoading(true)
     setAiError('')
@@ -98,7 +98,7 @@ export default function SosPage() {
       setAiResult(data)
       if (data.urgencyFlag) setShowHospitals(true)
     } catch {
-      setAiError('No se pudo conectar con Navigator en este momento. Llama a la línea de apoyo directamente.')
+      setAiError('No se pudo conectar con el Asistente PetOS en este momento. Llama a la línea de apoyo directamente.')
     } finally {
       setAiLoading(false)
     }
@@ -201,8 +201,8 @@ export default function SosPage() {
         </ul>
       </div>
 
-      {/* Paso 1: Navigator */}
-      <p className="eyebrow mb-3">Paso 1 · Cuéntale a Navigator qué pasa</p>
+      {/* Paso 1: Asistente PetOS */}
+      <p className="eyebrow mb-3">Paso 1 · Cuéntale al Asistente PetOS qué pasa</p>
       <div className="card mb-6">
         <textarea
           className="field-textarea"
@@ -211,11 +211,11 @@ export default function SosPage() {
           onChange={(e) => setDescription(e.target.value)}
         />
         <button
-          onClick={handleAskNavigator}
+          onClick={handleAskAssistant}
           className="btn-primary w-full"
           disabled={aiLoading || !description}
         >
-          {aiLoading ? 'Navigator está pensando...' : 'Pedir ayuda a Navigator'}
+          {aiLoading ? 'Asistente PetOS está pensando...' : 'Pedir ayuda al Asistente PetOS'}
         </button>
 
         {aiError && <p className="text-danger text-sm mt-4">{aiError}</p>}
@@ -238,7 +238,7 @@ export default function SosPage() {
         )}
       </div>
 
-      {/* Paso 2: Erick, aparece después de la respuesta de Navigator (o si el tutor decide saltarlo) */}
+      {/* Paso 2: Erick, aparece después de la respuesta del Asistente PetOS (o si el tutor decide saltarlo) */}
       {(aiResult || aiError) && supportPhone && (
         <>
           <p className="eyebrow mb-3">Paso 2 · ¿Sigues necesitando ayuda?</p>
@@ -262,7 +262,7 @@ export default function SosPage() {
         </>
       )}
 
-      {/* Paso 3: Hospitales, aparece si Navigator marcó urgencia o el tutor pidió verlos */}
+      {/* Paso 3: Hospitales, aparece si el Asistente PetOS marcó urgencia o el tutor pidió verlos */}
       {showHospitals && (
         <>
           <p className="eyebrow mb-3">Paso 3 · Si van al hospital</p>
